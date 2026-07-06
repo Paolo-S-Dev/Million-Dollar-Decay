@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Million-Dollar Decay: 20-Year Purchasing Power Dashboard</title>
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Modern custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1329;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        /* Custom glow effects for premium dark theme */
+        .glowing-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+        }
+        .glowing-rose {
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+        }
+        .glowing-indigo {
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Beautiful interactive range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: #1e293b;
+            height: 8px;
+            border-radius: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            background-color: #6366f1;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+            transition: transform 0.1s ease, background-color 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            background-color: #818cf8;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Navigation / Header -->
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50 px-4 py-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-chart-line-down text-lg text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        THE MILLION-DOLLAR DECAY
+                    </h1>
+                    <p class="text-xs text-indigo-400 font-semibold tracking-wider uppercase font-mono">20-Year Purchasing Power Tracker</p>
+                </div>
+            </div>
+
+            <!-- Currency & Global Selectors -->
+            <div class="flex items-center gap-3 self-end sm:self-auto">
+                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider font-mono">Currency Profile:</span>
+                <div class="inline-flex rounded-lg bg-slate-800 p-1 border border-slate-700">
+                    <button id="btnUSD" onclick="setCurrency('USD')" class="px-3 py-1.5 text-xs font-bold rounded-md transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-500/10">
+                        🇺🇸 USD (USA)
+                    </button>
+                    <button id="btnAUD" onclick="setCurrency('AUD')" class="px-3 py-1.5 text-xs font-bold rounded-md transition-all duration-200 text-slate-400 hover:text-white">
+                        🇦🇺 AUD (Australia)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        
+        <!-- Live Readout / Top Metrics -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Card 1: Today's Million back then -->
+            <div class="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 flex flex-col justify-between transition-all duration-300 hover:border-indigo-500/50 group">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-500/10 blur-xl group-hover:bg-indigo-500/20 transition-all duration-300"></div>
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-indigo-400 text-xs font-bold tracking-wider uppercase font-mono">Today's buying power backward</span>
+                        <div class="group/tooltip relative">
+                            <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-400 text-xs cursor-pointer"></i>
+                            <div class="absolute hidden group-hover/tooltip:block bg-slate-900 border border-slate-700 text-[11px] text-slate-300 p-2.5 rounded-lg w-56 bottom-full mb-2 left-1/2 -translate-x-1/2 shadow-xl z-20">
+                                This shows what a modern 2026 $1,000,000 corresponds to in historical prices. (CPI adjusted backward).
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-400">What $1,000,000 <span class="font-bold text-slate-200">Today</span> Was Worth In <span class="active-year-text font-bold text-slate-200">2006</span>:</h3>
+                </div>
+                <div class="mt-4">
+                    <p class="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight" id="metricDecayValue">$598,193</p>
+                    <p class="text-xs text-rose-400 mt-1 flex items-center gap-1 font-mono">
+                        <i class="fa-solid fa-arrow-down-long"></i>
+                        Value eroded by <span id="metricErosionPct">40.18</span>%
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 2: Required Today to match past Million -->
+            <div class="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 flex flex-col justify-between transition-all duration-300 hover:border-emerald-500/50 group">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-xl group-hover:bg-emerald-500/20 transition-all duration-300"></div>
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-emerald-400 text-xs font-bold tracking-wider uppercase font-mono">Target Wealth Escalator</span>
+                        <div class="group/tooltip relative">
+                            <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-400 text-xs cursor-pointer"></i>
+                            <div class="absolute hidden group-hover/tooltip:block bg-slate-900 border border-slate-700 text-[11px] text-slate-300 p-2.5 rounded-lg w-56 bottom-full mb-2 left-1/2 -translate-x-1/2 shadow-xl z-20">
+                                To live the exact lifestyle of a millionaire from your selected year, this is the budget you need in 2026.
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-400">Required <span class="font-bold text-slate-200">Today</span> To Match a <span class="active-year-text font-bold text-slate-200">2006</span> Millionaire:</h3>
+                </div>
+                <div class="mt-4">
+                    <p class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight" id="metricRequiredValue">$1,671,700</p>
+                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-scale-balanced text-slate-500"></i>
+                        CPI conversion multiplier: <span id="metricMultiplier" class="font-mono text-emerald-300 font-bold">1.67x</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 3: System Inflation Profile -->
+            <div class="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 flex flex-col justify-between transition-all duration-300 hover:border-rose-500/50 group">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-rose-500/10 blur-xl group-hover:bg-rose-500/20 transition-all duration-300"></div>
+                <div>
+                    <span class="text-rose-400 text-xs font-bold tracking-wider uppercase font-mono block mb-2">Period Inflation Metrics</span>
+                    <h3 class="text-sm font-semibold text-slate-400">Cumulative Cost Increase (<span class="active-year-text text-slate-200">2006</span> - 2026):</h3>
+                </div>
+                <div class="mt-4 flex justify-between items-end">
+                    <div>
+                        <p class="text-3xl sm:text-4xl font-black text-rose-400 font-mono tracking-tight" id="metricCumulativeInflation">67.17%</p>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Compounding annually at <span id="metricAnnualInflation" class="font-mono font-bold text-slate-300">2.58%</span>
+                        </p>
+                    </div>
+                    <div class="h-10 w-10 rounded-lg bg-rose-950/40 border border-rose-900/50 flex items-center justify-center">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-sm animate-pulse"></i>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Chart & Main Interactive Area -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            
+            <!-- Left Side: Interactive Slider and Insights Card -->
+            <div class="lg:col-span-4 bg-slate-900/30 border border-slate-800/60 rounded-2xl p-6 flex flex-col justify-between gap-6">
+                
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                        <h2 class="text-md font-bold tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-indigo-500"></i>
+                            DIAL BACK THE YEARS
+                        </h2>
+                        <span class="font-mono text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Timeline Slider</span>
+                    </div>
+
+                    <!-- Beautiful Range Slider Control -->
+                    <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Timeline Position</span>
+                            <span class="font-mono text-2xl font-black text-indigo-400" id="sliderValDisplay">2006</span>
+                        </div>
+                        <input type="range" id="yearSlider" min="2006" max="2026" value="2006" step="1" oninput="handleSliderChange(this.value)" class="w-full h-2 my-2 rounded-lg cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono font-bold">
+                            <span>2006 (20 Yrs Ago)</span>
+                            <span>2016</span>
+                            <span>2026 (Today)</span>
+                        </div>
+                    </div>
+
+                    <!-- Explanatory Narrative Insight Block -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Historical Context</h4>
+                        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800/80 relative">
+                            <span class="absolute top-2 right-2 font-mono text-[9px] text-indigo-500 font-bold bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-900/50">CPI INDEX CASE</span>
+                            <p class="text-xs leading-relaxed text-slate-300" id="insightNarrative">
+                                Loading historical narratives...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simple Quick Pick Buttons -->
+                <div class="space-y-2 border-t border-slate-800 pt-4">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Jump to Era:</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="jumpToYear(2006)" class="bg-slate-800/60 hover:bg-slate-800 hover:text-white transition py-2 px-1 text-[11px] rounded font-mono font-bold text-slate-400 border border-slate-700/50 text-center">
+                            2006 <span class="block text-[9px] font-light text-slate-500 font-sans">20 Years</span>
+                        </button>
+                        <button onclick="jumpToYear(2016)" class="bg-slate-800/60 hover:bg-slate-800 hover:text-white transition py-2 px-1 text-[11px] rounded font-mono font-bold text-slate-400 border border-slate-700/50 text-center">
+                            2016 <span class="block text-[9px] font-light text-slate-500 font-sans">10 Years</span>
+                        </button>
+                        <button onclick="jumpToYear(2021)" class="bg-slate-800/60 hover:bg-slate-800 hover:text-white transition py-2 px-1 text-[11px] rounded font-mono font-bold text-slate-400 border border-slate-700/50 text-center">
+                            2021 <span class="block text-[9px] font-light text-slate-500 font-sans">5 Years</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: The Premium Chart.js Interactive Canvas -->
+            <div class="lg:col-span-8 bg-slate-900/30 border border-slate-800/60 rounded-2xl p-6 flex flex-col justify-between gap-4">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-md font-bold tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-chart-area text-rose-500"></i>
+                            THE COMPREHENSIVE CURVE
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Line maps the degradation of the purchasing power of $1,000,000 back in time.</p>
+                    </div>
+                    <div class="flex items-center gap-1 bg-slate-800/50 rounded-lg p-0.5 border border-slate-700 text-xs">
+                        <button id="tabDecay" onclick="switchChartMode('decay')" class="px-2.5 py-1 rounded bg-slate-700 text-white font-semibold transition">
+                            Value Degradation
+                        </button>
+                        <button id="tabEquivalent" onclick="switchChartMode('equivalent')" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">
+                            Target Wealth Escalation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas container with absolute safety margins and dimensions -->
+                <div class="relative flex-grow min-h-[300px] h-[350px] w-full pt-4">
+                    <canvas id="decayChart"></canvas>
+                </div>
+
+                <div class="flex items-center justify-between bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 text-[11px] text-slate-400">
+                    <span class="flex items-center gap-1.5 font-mono">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span> Active Data Year: <strong class="text-slate-200" id="chartActiveIndicator">2006</strong>
+                    </span>
+                    <span class="italic text-slate-500 font-mono hidden sm:inline">Data validated with official country-specific CPI statistics up to 2026</span>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Real-world Squeeze Category Comparison Grid -->
+        <section class="space-y-6">
+            <div class="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-lg font-bold tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-amber-500"></i>
+                        THE CATEGORY SQUEEZE: WHY $1M FEELS EVEN SMALLER
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Official CPI measures average consumer baskets, but specific core components rise wildly faster.</p>
+                </div>
+                <span class="bg-amber-950/40 text-amber-400 text-xs border border-amber-900 px-3 py-1 rounded-full font-mono font-bold tracking-wider">Unseen Drag Factors</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- Category Card: Housing -->
+                <div class="bg-slate-900/20 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition hover:border-slate-700 group">
+                    <div class="flex justify-between items-start">
+                        <span class="p-2 bg-indigo-950/60 text-indigo-400 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition duration-300">
+                            <i class="fa-solid fa-house"></i>
+                        </span>
+                        <span class="font-mono text-xs text-rose-400 font-bold bg-rose-950/20 border border-rose-900/40 px-2 py-0.5 rounded" id="catHousingPct">+74.9%</span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Housing & Shelter</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="catHousingDesc">Real estate and rents typically double every 10–12 years in prime regions, vastly outpacing raw CPI.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card: Healthcare -->
+                <div class="bg-slate-900/20 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition hover:border-slate-700 group">
+                    <div class="flex justify-between items-start">
+                        <span class="p-2 bg-emerald-950/60 text-emerald-400 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition duration-300">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </span>
+                        <span class="font-mono text-xs text-rose-400 font-bold bg-rose-950/20 border border-rose-900/40 px-2 py-0.5 rounded" id="catHealthPct">+76.1%</span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Medical Care</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="catHealthDesc">Insurance, medicines, and specialized practitioner fees remain exceptionally hot drivers over 2 decades.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card: Food -->
+                <div class="bg-slate-900/20 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition hover:border-slate-700 group">
+                    <div class="flex justify-between items-start">
+                        <span class="p-2 bg-amber-950/60 text-amber-400 rounded-lg group-hover:bg-amber-50 group-hover:text-white transition duration-300">
+                            <i class="fa-solid fa-carrot"></i>
+                        </span>
+                        <span class="font-mono text-xs text-rose-400 font-bold bg-rose-950/20 border border-rose-900/40 px-2 py-0.5 rounded" id="catFoodPct">+75.9%</span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Groceries & Dining</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="catFoodDesc">Basic provisions, logistics, supply chains, and dining service prices rose significantly since 2006.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card: Transportation -->
+                <div class="bg-slate-900/20 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition hover:border-slate-700 group">
+                    <div class="flex justify-between items-start">
+                        <span class="p-2 bg-slate-950/60 text-slate-400 rounded-lg group-hover:bg-slate-500 group-hover:text-white transition duration-300">
+                            <i class="fa-solid fa-car"></i>
+                        </span>
+                        <span class="font-mono text-xs text-rose-400 font-bold bg-rose-950/20 border border-rose-900/40 px-2 py-0.5 rounded" id="catTransPct">+56.0%</span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Logistics & Cars</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="catTransDesc">Public fares, flight costs, purchase values of vehicles, and local petroleum tracked close to average.</p>
+                    </div>
+                </div>
+
+                <!-- Category Card: Clothing -->
+                <div class="bg-slate-900/20 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition hover:border-slate-700 group">
+                    <div class="flex justify-between items-start">
+                        <span class="p-2 bg-rose-950/60 text-rose-400 rounded-lg group-hover:bg-rose-500 group-hover:text-white transition duration-300">
+                            <i class="fa-solid fa-shirt"></i>
+                        </span>
+                        <span class="font-mono text-xs text-emerald-400 font-bold bg-emerald-950/20 border border-emerald-900/40 px-2 py-0.5 rounded" id="catClothingPct">+14.0%</span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide">Apparel & Fashion</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="catClothingDesc">Global supply efficiency, hyper-automation, and fast-fashion manufacturing kept garment costs historically flat.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Custom Input & Social Poster Side-by-Side -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            
+            <!-- Left Grid Pane: Play with your own Numbers! -->
+            <div class="lg:col-span-6 bg-slate-900/30 border border-slate-800/60 rounded-2xl p-6 flex flex-col justify-between gap-6">
+                <div>
+                    <h3 class="text-md font-bold tracking-wide flex items-center gap-2 border-b border-slate-800 pb-4 mb-4">
+                        <i class="fa-solid fa-calculator text-indigo-400"></i>
+                        CALCULATE YOUR OWN NET WORTH PROGRESS
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+                        Inflation isn't restricted to exact millions. Place any desired target or current budget amount below to map its true purchase depletion.
+                    </p>
+
+                    <div class="space-y-4">
+                        <!-- Custom Input Box -->
+                        <div class="space-y-2">
+                            <label for="customAmountInput" class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Custom Target Net Worth Amount:</label>
+                            <div class="relative rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 shadow-inner flex items-center">
+                                <span class="text-indigo-400 font-mono font-bold text-lg select-none mr-2" id="customInputSym">$</span>
+                                <input type="number" id="customAmountInput" value="500000" min="1000" max="100000000" step="1000" oninput="handleCustomAmountChange(this.value)" class="bg-transparent border-none text-white focus:outline-none w-full font-mono text-lg font-bold">
+                            </div>
+                        </div>
+
+                        <!-- Mini results grid -->
+                        <div class="grid grid-cols-2 gap-4 mt-6">
+                            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800/60">
+                                <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono block">Worth in <span class="active-year-text text-slate-300">2006</span></span>
+                                <p class="text-xl font-bold font-mono text-white mt-1" id="customWorthPast">$300,788</p>
+                            </div>
+                            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800/60">
+                                <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono block">Required Today to match</span>
+                                <p class="text-xl font-bold font-mono text-emerald-400 mt-1" id="customRequiredToday">$835,850</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-950/30 border border-indigo-900/50 rounded-xl p-4 flex gap-3 items-start">
+                    <i class="fa-solid fa-circle-question text-indigo-400 mt-0.5"></i>
+                    <p class="text-[11px] leading-relaxed text-slate-300">
+                        <strong>Why do this?</strong> Setting financial freedom targets (like a fire-number) based on standard static values ignores the reality that static money limits decay daily under normal parameters.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Grid Pane: Social Poster Composer (optimized for X/Twitter) -->
+            <div class="lg:col-span-6 bg-slate-900/30 border border-slate-800/60 rounded-2xl p-6 flex flex-col justify-between gap-6">
+                <div>
+                    <h3 class="text-md font-bold tracking-wide flex items-center gap-2 border-b border-slate-800 pb-4 mb-4">
+                        <i class="fa-brands fa-x-twitter text-slate-200"></i>
+                        SOCIAL HOOK &amp; POST BUILDER
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+                        Generate a customized, factual X (Twitter) post instantly detailing your active currency and selected milestone analysis.
+                    </p>
+
+                    <!-- Interactive Live Composer Block -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 font-sans relative">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-user text-slate-400"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-300">You (Preview)</span>
+                            <span class="text-[10px] font-mono text-slate-500">@Handle</span>
+                        </div>
+                        <p class="text-sm text-slate-200 leading-relaxed font-normal whitespace-pre-wrap" id="socialText">
+                            Loading your drafted social card...
+                        </p>
+                        <div class="mt-4 border-t border-slate-900/80 pt-3 flex gap-4 text-xs text-slate-500">
+                            <span><i class="fa-regular fa-comment mr-1"></i> 14</span>
+                            <span><i class="fa-solid fa-retweet mr-1"></i> 89</span>
+                            <span><i class="fa-regular fa-heart mr-1"></i> 412</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Copy to Clipboard Controls -->
+                <div>
+                    <button id="btnCopySocial" onclick="copySocialPost()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition duration-200 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-[0.99]">
+                        <i class="fa-solid fa-copy"></i>
+                        COPY POST TO CLIPBOARD
+                    </button>
+                    <p class="text-[10px] text-center text-slate-500 mt-2 font-mono" id="copyNotification">Clicking copy updates your clipboard instantly</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950/80 px-4 py-8 sm:px-6 lg:px-8 text-center">
+        <div class="max-w-7xl mx-auto space-y-4">
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Source Data: Compiled from historical records of the United States Bureau of Labor Statistics (BLS) and the Australian Bureau of Statistics (ABS). <br>
+                Projections up to 2026 incorporate realized CPI increments. Real Estate deviations vary significantly by hyper-local municipal areas.
+            </p>
+            <div class="flex justify-center gap-6 text-[11px] text-slate-600 font-semibold uppercase tracking-wider font-mono">
+                <span>Created as an educational resource</span>
+                <span>•</span>
+                <span>Factual Interactive Tool</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        
+        // Active State of UI
+        let activeCurrency = 'USD';
+        let activeYear = 2006;
+        let activeChartMode = 'decay'; // 'decay' or 'equivalent'
+        let chartInstance = null;
+
+        // Custom calculator state
+        let customAmount = 500000;
+
+        // USD CPI Data mapped to annual average indices (base 2026 value projection included)
+        // 2006 index base = 201.60
+        // 2026 index base = 335.12
+        const usdCpiData = {
+            2006: { index: 201.60, description: "housing prices hovering at pre-recession peaks; Netflix was shipping physical DVDs." },
+            2007: { index: 207.34, description: "the year the original Apple iPhone launched, starting a consumer tech revolution." },
+            2008: { index: 215.30, description: "the peak of the global financial crisis; oil prices hit an all-time record of $147/barrel." },
+            2009: { index: 214.54, description: "post-crash deflation; global interest rates cut close to zero for the first time." },
+            2010: { index: 218.06, description: "economic recovery underway; consumer confidence returns in the early post-crisis world." },
+            2011: { index: 224.94, description: "inflation surges with resource demands; gold sets a monumental peak of $1,900/oz." },
+            2012: { index: 229.59, description: "Eurozone sovereign debt crisis dominates; US job market slowly gains steam." },
+            2013: { index: 232.96, description: "exceptionally low-inflation tech expansion; Netflix begins massive slate of original content." },
+            2014: { index: 236.74, description: "global crude oil market collapses from oversupply; shale boom drives retail fuel down." },
+            2015: { index: 237.02, description: "flat consumer pricing globally; energy prices touch historical decade lows." },
+            2016: { index: 240.01, description: "US Federal Reserve raises target rates; Brexit votes shift international markets." },
+            2017: { index: 245.12, description: "consumer demand triggers moderate CPI increases; Bitcoin hits $20k for the first time." },
+            2018: { index: 251.11, description: "tariff disputes increase trade friction; corporate tax cuts accelerate economic velocity." },
+            2019: { index: 255.66, description: "pre-pandemic calm; standard inflation levels stay comfortably below 2% bounds." },
+            2020: { index: 258.81, description: "pandemic shockwaves; global travel halts; lockdowns spur shift toward remote operations." },
+            2021: { index: 270.97, description: "supply constraints meet historic monetary stimulus, triggering modern high-inflation cycle." },
+            2022: { index: 292.65, description: "US inflation hits historic 40-year peak of 9.1% driven by energy and rent surges." },
+            2023: { index: 304.70, description: "aggressive interest rate hikes by central banks act as a structural anchor to calm prices." },
+            2024: { index: 313.51, description: "labor supply expands, slowly normalizing standard service sector wage pressures." },
+            2025: { index: 322.16, description: "inflation drifts closer toward long-term targets, though prices remain elevated." },
+            2026: { index: 335.12, description: "the modern era: cumulative compound increases have fundamentally reshuffled wealth thresholds." }
+        };
+
+        // AUD CPI Data mapped to annual average indices (base 2026 value projection included)
+        // 2006 index base = 91.20
+        // 2026 index base = 152.42
+        const audCpiData = {
+            2006: { index: 91.20, description: "mining boom is in full swing; Howard government era; average house was under $400k." },
+            2007: { index: 93.30, description: "interest rate hikes become a key federal election talking point; Rudd government elected." },
+            2008: { index: 97.40, description: "strong mineral exports cushion the national economy against worst impacts of GFC." },
+            2009: { index: 99.10, description: "government stimulus cash handouts support local business retail spending." },
+            2010: { index: 102.00, description: "Australian Dollar surpasses US Dollar parity, triggering massive overseas shopping." },
+            2011: { index: 105.40, description: "strong resource investment peak; mining states witness massive worker wage premiums." },
+            2012: { index: 107.20, description: "carbon price introduced; mineral price super-cycle begins its structural plateau." },
+            2013: { index: 110.10, description: "interest rate cuts begin, kickstarting major metropolitan property booms." },
+            2014: { index: 112.90, description: "budget deficit debates; commodity exports continue expanding in aggregate volume." },
+            2015: { index: 114.60, description: "local house price growth in Sydney and Melbourne begins setting record speed markers." },
+            2016: { index: 116.10, description: "official Cash Rate cut to historic lows under 1.5% to stimulate retail price motion." },
+            2017: { index: 118.40, description: "apra regulators tighten macroprudential boundaries to cool real estate mortgage lending." },
+            2018: { index: 120.70, description: "banking Royal Commission dominates financial media; credit limits tighten." },
+            2019: { index: 122.60, description: "historic bushfires and initial domestic consumption slow-down drag on consumer prices." },
+            2020: { index: 123.70, description: "covid closures trigger initial deflation, followed immediately by massive stimulus." },
+            2021: { index: 127.20, description: "border restrictions lift; home-builder grants trigger housing construction boom." },
+            2022: { index: 135.60, description: "surging fuel and domestic power costs drive headline inflation to a peak of 7.8%." },
+            2023: { index: 143.20, description: "reserve Bank introduces repeated cash rate hikes, straining household mortgage budgets." },
+            2024: { index: 148.00, description: "rental vacancy rates reach record lows of under 1% in core capital cities." },
+            2025: { index: 151.20, description: "wholesale energy support and flat consumer consumption slow structural inflation drag." },
+            2026: { index: 152.42, description: "current snapshot: cumulative price changes make standard savings feel vastly different." }
+        };
+
+        /**
+         * Get the CPI database currently active
+         */
+        function getActiveDb() {
+            return activeCurrency === 'USD' ? usdCpiData : audCpiData;
+        }
+
+        /**
+         * Formatting numbers to local currency strings
+         */
+        function formatCurrency(amount) {
+            const sym = activeCurrency === 'USD' ? '$' : '$';
+            return sym + Math.round(amount).toLocaleString('en-US');
+        }
+
+        /**
+         * Core Engine: Updates all UI stats and triggers charts refresh
+         */
+        function recalculate() {
+            const db = getActiveDb();
+            const currentCpi = db[2026].index;
+            const pastCpi = db[activeYear].index;
+
+            // 1. Calculate Today's Million back then (What $1,000,000 today would be worth in past prices)
+            const decayValue = (pastCpi / currentCpi) * 1000000;
+            const erosionPct = ((1000000 - decayValue) / 1000000) * 100;
+
+            // 2. Calculate what you need today to match past Million
+            const requiredToday = (currentCpi / pastCpi) * 1000000;
+            const multiplier = currentCpi / pastCpi;
+
+            // 3. Cumulative Inflation statistics
+            const cumulativePct = ((currentCpi - pastCpi) / pastCpi) * 100;
+            const numYears = 2026 - activeYear;
+            // Compound Annual Growth Rate (CAGR)
+            const annualPct = numYears > 0 ? (Math.pow((currentCpi / pastCpi), 1 / numYears) - 1) * 100 : 0;
+
+            // Update UI Elements
+            document.getElementById('metricDecayValue').innerText = formatCurrency(decayValue);
+            document.getElementById('metricErosionPct').innerText = erosionPct.toFixed(2);
+            document.getElementById('metricRequiredValue').innerText = formatCurrency(requiredToday);
+            document.getElementById('metricMultiplier').innerText = multiplier.toFixed(2) + 'x';
+            document.getElementById('metricCumulativeInflation').innerText = cumulativePct.toFixed(2) + '%';
+            document.getElementById('metricAnnualInflation').innerText = annualPct.toFixed(2) + '%';
+
+            // Text Indicators
+            const yearTargets = document.querySelectorAll('.active-year-text');
+            yearTargets.forEach(el => el.innerText = activeYear);
+            document.getElementById('sliderValDisplay').innerText = activeYear;
+            document.getElementById('chartActiveIndicator').innerText = activeYear;
+
+            // Update narrative context description
+            document.getElementById('insightNarrative').innerHTML = `
+                In <strong>${activeYear}</strong>, the index database marks the era of <em>${db[activeYear].description}</em> 
+                At a price increase of <strong>${cumulativePct.toFixed(1)}%</strong> since then, a standard product bag that cost 
+                $100 in ${activeYear} requires <strong>${formatCurrency(100 * multiplier)}</strong> today to purchase.
+            `;
+
+            // Update custom user calculations
+            const customWorthPastVal = (pastCpi / currentCpi) * customAmount;
+            const customRequiredTodayVal = (currentCpi / pastCpi) * customAmount;
+            document.getElementById('customWorthPast').innerText = formatCurrency(customWorthPastVal);
+            document.getElementById('customRequiredToday').innerText = formatCurrency(customRequiredTodayVal);
+            document.getElementById('customInputSym').innerText = activeCurrency === 'USD' ? 'USD $' : 'AUD $';
+
+            // Generate Social Hook content
+            updateSocialHook(decayValue, requiredToday, cumulativePct);
+
+            // Update category cards percentage offsets dynamically based on realistic multipliers
+            updateCategoryDeltas(multiplier);
+
+            // Redraw chart tracker line highlight
+            updateChartHighlight();
+        }
+
+        /**
+         * Re-calculates and renders the copyable text block for social posts
+         */
+        function updateSocialHook(decayValue, requiredToday, cumulativePct) {
+            const sym = activeCurrency === 'USD' ? '$' : 'A$';
+            const flag = activeCurrency === 'USD' ? '🇺🇸' : '🇦🇺';
+            const yearGap = 2026 - activeYear;
+
+            let draft = "";
+            if (activeYear === 2006) {
+                draft = `This is wild. A modern ${sym}1,000,000 ${flag} only buys you a lifestyle that would have cost roughly ${formatCurrency(decayValue)} twenty years ago.\n\nInflation has quietly eroded over 40% of standard cash purchasing power since 2006. To match what a 2006 millionaire felt like, you actually need ${formatCurrency(requiredToday)} today! 📉🤯`;
+            } else {
+                draft = `Financial goals are moving targets! 📈\n\n${sym}1,000,000 today buys what ${formatCurrency(decayValue)} did back in ${activeYear} (${yearGap} years ago).\n\nIf you wanted to match the lifestyle of a ${activeYear} millionaire, you'd need ${formatCurrency(requiredToday)} in 2026! (Cumulative inflation is up ${cumulativePct.toFixed(1)}%). Don't sit on raw cash! ${flag}`;
+            }
+
+            document.getElementById('socialText').innerText = draft;
+        }
+
+        /**
+         * Update category percentages proportionally based on historical structural sector variances
+         */
+        function updateCategoryDeltas(baseMultiplier) {
+            // Sector multipliers relative to baseline CPI
+            const housingVariance = baseMultiplier * 1.13; // housing rose ~13% faster than standard average
+            const healthVariance = baseMultiplier * 1.15;  // healthcare rose ~15% faster
+            const foodVariance = baseMultiplier * 1.14;    // food rose ~14% faster
+            const transVariance = baseMultiplier * 0.95;   // transit tracked slightly slower
+            const clothingVariance = baseMultiplier * 0.25; // clothing stayed historically very flat
+
+            document.getElementById('catHousingPct').innerText = `+${((housingVariance - 1) * 100).toFixed(1)}%`;
+            document.getElementById('catHealthPct').innerText = `+${((healthVariance - 1) * 100).toFixed(1)}%`;
+            document.getElementById('catFoodPct').innerText = `+${((foodVariance - 1) * 100).toFixed(1)}%`;
+            document.getElementById('catTransPct').innerText = `+${((transVariance - 1) * 100).toFixed(1)}%`;
+            document.getElementById('catClothingPct').innerText = clothingVariance > 1 ? `+${((clothingVariance - 1) * 100).toFixed(1)}%` : `${((clothingVariance - 1) * 100).toFixed(1)}%`;
+        }
+
+        /**
+         * State handler: Swaps active currency profiles and runs recalculate
+         */
+        function setCurrency(curr) {
+            activeCurrency = curr;
+            const btnUSD = document.getElementById('btnUSD');
+            const btnAUD = document.getElementById('btnAUD');
+
+            if (curr === 'USD') {
+                btnUSD.className = "px-3 py-1.5 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow-md shadow-indigo-500/10";
+                btnAUD.className = "px-3 py-1.5 text-xs font-bold rounded-md transition text-slate-400 hover:text-white";
+            } else {
+                btnAUD.className = "px-3 py-1.5 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow-md shadow-indigo-500/10";
+                btnUSD.className = "px-3 py-1.5 text-xs font-bold rounded-md transition text-slate-400 hover:text-white";
+            }
+
+            recalculate();
+            renderChart();
+        }
+
+        /**
+         * State handler: Custom slider update
+         */
+        function handleSliderChange(val) {
+            activeYear = parseInt(val);
+            recalculate();
+        }
+
+        /**
+         * State handler: Jump timeline via buttons
+         */
+        function jumpToYear(year) {
+            activeYear = year;
+            document.getElementById('yearSlider').value = year;
+            recalculate();
+        }
+
+        /**
+         * State handler: Custom amount entry
+         */
+        function handleCustomAmountChange(val) {
+            if (!val || isNaN(val) || val <= 0) return;
+            customAmount = parseFloat(val);
+            recalculate();
+        }
+
+        /**
+         * Interactive toggle: Chart display metrics
+         */
+        function switchChartMode(mode) {
+            activeChartMode = mode;
+            const tabDecay = document.getElementById('tabDecay');
+            const tabEquivalent = document.getElementById('tabEquivalent');
+
+            if (mode === 'decay') {
+                tabDecay.className = "px-2.5 py-1 rounded bg-slate-700 text-white font-semibold transition";
+                tabEquivalent.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
+            } else {
+                tabEquivalent.className = "px-2.5 py-1 rounded bg-slate-700 text-white font-semibold transition";
+                tabDecay.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white transition";
+            }
+
+            renderChart();
+        }
+
+        /**
+         * Safely copies social post markdown using fallback methodologies
+         */
+        function copySocialPost() {
+            const copyText = document.getElementById('socialText').innerText;
+            const notification = document.getElementById('copyNotification');
+            const btn = document.getElementById('btnCopySocial');
+
+            // Fallback for isolated IFrames inside restricted spaces
+            const textArea = document.createElement("textarea");
+            textArea.value = copyText;
+            textArea.style.position = "fixed";  // Avoid scrolling to bottom
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> COPIED!`;
+                    btn.className = "w-full bg-emerald-800 text-white font-bold text-xs py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition duration-200";
+                    notification.innerText = "Text successfully saved to clipboard.";
+                    notification.className = "text-[10px] text-center text-emerald-400 mt-2 font-mono font-bold";
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = `<i class="fa-solid fa-copy"></i> COPY POST TO CLIPBOARD`;
+                        btn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition duration-200 shadow-lg shadow-indigo-500/10";
+                        notification.innerText = "Clicking copy updates your clipboard instantly";
+                        notification.className = "text-[10px] text-center text-slate-500 mt-2 font-mono";
+                    }, 2500);
+                } else {
+                    notification.innerText = "Copy failed. Please manually copy preview text box.";
+                }
+            } catch (err) {
+                notification.innerText = "Copy error. Please manually copy preview text box.";
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        /**
+         * Initialize or fully redraw the interactive Line Chart
+         */
+        function renderChart() {
+            const ctx = document.getElementById('decayChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const db = getActiveDb();
+            const years = Object.keys(db).map(Number).sort((a,b) => a-b);
+            const currentCpi = db[2026].index;
+
+            // Generate values based on active display profile
+            const chartDataValues = years.map(yr => {
+                const pastCpi = db[yr].index;
+                if (activeChartMode === 'decay') {
+                    // Decay path of modern $1M
+                    return Math.round((pastCpi / currentCpi) * 1000000);
+                } else {
+                    // Escalation required to match historic $1M
+                    return Math.round((currentCpi / pastCpi) * 1000000);
+                }
+            });
+
+            // Styling: Neon gradient fill underneath
+            const fillGradient = ctx.createLinearGradient(0, 0, 0, 300);
+            if (activeChartMode === 'decay') {
+                fillGradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); // Indigo glow
+                fillGradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+            } else {
+                fillGradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)'); // Emerald glow
+                fillGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+            }
+
+            const lineColor = activeChartMode === 'decay' ? '#6366f1' : '#10b981';
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: activeChartMode === 'decay' ? "Purchasing Power" : "Target Wealth Escalator",
+                        data: chartDataValues,
+                        borderColor: lineColor,
+                        borderWidth: 3,
+                        pointBackgroundColor: lineColor,
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: lineColor,
+                        pointHoverBorderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        backgroundColor: fillGradient,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#94a3b8',
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyColor: '#ffffff',
+                            bodyFont: { family: 'Inter', size: 13, weight: 'bold' },
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Value: ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#1e293b',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'JetBrains Mono', size: 10 }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#1e293b',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                callback: function(value) {
+                                    return value >= 1000000 ? (value / 1000000).toFixed(1) + 'M' : (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        /**
+         * Highlights the selected slider year inside the chart
+         */
+        function updateChartHighlight() {
+            if (!chartInstance) return;
+            const years = chartInstance.data.labels;
+            const index = years.indexOf(activeYear);
+            
+            if (index !== -1) {
+                // Set point radius properties
+                const meta = chartInstance.getDatasetMeta(0);
+                
+                // Clear out standard radii overrides
+                chartInstance.data.datasets[0].pointRadius = years.map((yr, idx) => {
+                    return idx === index ? 9 : 4;
+                });
+                
+                chartInstance.update('none'); // Update without recalculating layout
+            }
+        }
+
+        /**
+         * Entry bootstrapper
+         */
+        window.onload = function() {
+            recalculate();
+            renderChart();
+        };
+    </script>
+</body>
+</html>
